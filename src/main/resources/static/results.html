@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevScope — Analysis Results</title>
+    <meta name="description" content="Your DevScope developer profile analysis results and improvement suggestions.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ─── Reset & Base ────────────────────────────────────────── */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #ffffff;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border: #334155;
+            --border-light: #e2e8f0;
+            --error: #ef4444;
+            --amber: #f59e0b;
+            --green: #22c55e;
+            --red: #ef4444;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 32px 24px 64px;
+            overflow-x: hidden;
+        }
+
+        /* ─── Animated Background ─────────────────────────────────── */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+            animation: bgDrift 20s ease-in-out infinite alternate;
+            z-index: -1;
+        }
+
+        @keyframes bgDrift {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-3%, -3%) rotate(2deg); }
+        }
+
+        /* ─── Container ───────────────────────────────────────────── */
+        .container {
+            max-width: 880px;
+            margin: 0 auto;
+        }
+
+        /* ─── Header ──────────────────────────────────────────────── */
+        .header {
+            text-align: center;
+            margin-bottom: 36px;
+            animation: fadeSlideDown 0.6s ease-out;
+        }
+
+        @keyframes fadeSlideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #f8fafc, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .profile-meta {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .profile-meta strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* ─── Loading ─────────────────────────────────────────────── */
+        .loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 120px 16px;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--bg-secondary);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-screen p {
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        /* ─── Error Banner ────────────────────────────────────────── */
+        .error-banner {
+            display: none;
+            text-align: center;
+            padding: 80px 16px;
+        }
+
+        .error-banner.visible {
+            display: block;
+        }
+
+        .error-banner .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .error-banner h2 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .error-banner p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        /* ─── Results Content ─────────────────────────────────────── */
+        .results-content {
+            display: none;
+        }
+
+        .results-content.visible {
+            display: block;
+        }
+
+        /* ─── Score Circle ────────────────────────────────────────── */
+        .score-section {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeSlideUp 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .score-circle-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 180px;
+            height: 180px;
+            margin-bottom: 16px;
+        }
+
+        .score-circle-bg {
+            fill: none;
+            stroke: var(--bg-secondary);
+            stroke-width: 10;
+        }
+
+        .score-circle-fill {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: center;
+            transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+                        stroke 0.5s ease;
+        }
+
+        .score-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .score-number {
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .score-max {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin-top: 4px;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* ─── Score Cards Grid ────────────────────────────────────── */
+        .breakdown-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: -0.3px;
+            animation: fadeSlideUp 0.8s ease-out 0.4s both;
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .score-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: cardReveal 0.5s ease-out forwards;
+        }
+
+        .score-card:nth-child(1) { animation-delay: 0.5s; }
+        .score-card:nth-child(2) { animation-delay: 0.6s; }
+        .score-card:nth-child(3) { animation-delay: 0.7s; }
+        .score-card:nth-child(4) { animation-delay: 0.8s; }
+        .score-card:nth-child(5) { animation-delay: 0.9s; }
+        .score-card:nth-child(6) { animation-delay: 1.0s; }
+        .score-card:nth-child(7) { animation-delay: 1.1s; }
+
+        @keyframes cardReveal {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .score-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .score-card .card-icon {
+            font-size: 24px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .score-card .card-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .score-card .card-score {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-dark);
+            letter-spacing: -1px;
+        }
+
+        .score-card .card-max {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        /* Progress bar inside card */
+        .card-progress {
+            margin-top: 14px;
+            height: 6px;
+            background: #f1f5f9;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .card-progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Color coding for card accent bars & progress */
+        .score-card.color-green::before  { background: var(--green); }
+        .score-card.color-green .card-progress-fill  { background: var(--green); }
+        .score-card.color-green .card-score  { color: #15803d; }
+
+        .score-card.color-amber::before  { background: var(--amber); }
+        .score-card.color-amber .card-progress-fill  { background: var(--amber); }
+        .score-card.color-amber .card-score  { color: #b45309; }
+
+        .score-card.color-red::before    { background: var(--red); }
+        .score-card.color-red .card-progress-fill    { background: var(--red); }
+        .score-card.color-red .card-score    { color: #dc2626; }
+
+        /* ─── Suggestions ─────────────────────────────────────────── */
+        .suggestions-section {
+            animation: fadeSlideUp 0.8s ease-out 1.3s both;
+            margin-bottom: 40px;
+        }
+
+        .suggestions-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: -0.3px;
+        }
+
+        .suggestions-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .suggestion-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            border-left: 4px solid var(--amber);
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .suggestion-item .warn-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .no-suggestions {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            text-align: center;
+            color: var(--green);
+            font-size: 14px;
+        }
+
+        /* ─── Actions ─────────────────────────────────────────────── */
+        .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeSlideUp 0.8s ease-out 1.5s both;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            letter-spacing: 0.2px;
+        }
+
+        .btn-primary {
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #273449;
+            transform: translateY(-2px);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--bg-card);
+            color: var(--text-dark);
+            padding: 14px 24px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ─── Responsive ──────────────────────────────────────────── */
+        @media (max-width: 600px) {
+            body {
+                padding: 20px 16px 48px;
+            }
+            .score-circle-wrapper {
+                width: 150px;
+                height: 150px;
+            }
+            .score-number {
+                font-size: 40px;
+            }
+            .score-grid {
+                grid-template-columns: 1fr;
+            }
+            .actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">⚡</div>
+                <span class="logo-text">DevScope</span>
+            </a>
+            <p class="profile-meta" id="profileMeta"></p>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-screen" id="loadingScreen">
+            <div class="spinner"></div>
+            <p>Loading analysis results…</p>
+        </div>
+
+        <!-- Error -->
+        <div class="error-banner" id="errorBanner">
+            <div class="icon">😕</div>
+            <h2>Could not load results</h2>
+            <p id="errorDetail">The analysis ID was not found or the request failed.</p>
+            <a href="index.html" class="btn btn-primary">← Start Over</a>
+        </div>
+
+        <!-- Results -->
+        <div class="results-content" id="resultsContent">
+            <!-- Score Circle -->
+            <div class="score-section">
+                <div class="score-circle-wrapper">
+                    <svg viewBox="0 0 180 180" width="100%" height="100%">
+                        <circle class="score-circle-bg" cx="90" cy="90" r="80"></circle>
+                        <circle class="score-circle-fill" id="scoreCircle" cx="90" cy="90" r="80"
+                                stroke-dasharray="502.65"
+                                stroke-dashoffset="502.65"></circle>
+                    </svg>
+                    <div class="score-value">
+                        <div class="score-number" id="scoreNumber">0</div>
+                        <div class="score-max">/ 100</div>
+                    </div>
+                </div>
+                <div class="score-label">Overall Developer Score</div>
+            </div>
+
+            <!-- Breakdown -->
+            <h2 class="breakdown-title">📊 Score Breakdown</h2>
+            <div class="score-grid" id="scoreGrid"></div>
+
+            <!-- Suggestions -->
+            <div class="suggestions-section" id="suggestionsSection">
+                <h2 class="suggestions-title">💡 Improvement Suggestions</h2>
+                <ul class="suggestions-list" id="suggestionsList"></ul>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <a href="index.html" class="btn btn-primary">🔄 Analyze Another Profile</a>
+                <button class="btn btn-secondary" id="shareBtn" onclick="shareResults()">📋 Copy Results Link</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">✅ Link copied to clipboard!</div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        //  Configuration
+        // ═══════════════════════════════════════════════════════════════
+        const API_BASE_URL = 'http://localhost:8080';
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Score Card Definitions (in display order)
+        // ═══════════════════════════════════════════════════════════════
+        const SCORE_CARDS = [
+            { key: 'repoCountScore',            max: 15, icon: '📁', title: 'Repository Count' },
+            { key: 'commitFrequencyScore',      max: 20, icon: '🔥', title: 'Commit Frequency' },
+            { key: 'languageDiversityScore',    max: 15, icon: '🌐', title: 'Language Diversity' },
+            { key: 'projectDocumentationScore', max: 10, icon: '📝', title: 'Project Documentation' },
+            { key: 'resumeMatchScore',          max: 20, icon: '🎯', title: 'Resume–GitHub Match' },
+            { key: 'profileCompletenessScore',  max: 10, icon: '👤', title: 'Profile Completeness' },
+            { key: 'starsRecognitionScore',     max: 10, icon: '⭐', title: 'Stars & Recognition' },
+        ];
+
+        // ═══════════════════════════════════════════════════════════════
+        //  DOM References
+        // ═══════════════════════════════════════════════════════════════
+        const loadingScreen   = document.getElementById('loadingScreen');
+        const errorBanner     = document.getElementById('errorBanner');
+        const errorDetail     = document.getElementById('errorDetail');
+        const resultsContent  = document.getElementById('resultsContent');
+        const profileMeta     = document.getElementById('profileMeta');
+        const scoreCircle     = document.getElementById('scoreCircle');
+        const scoreNumber     = document.getElementById('scoreNumber');
+        const scoreGrid       = document.getElementById('scoreGrid');
+        const suggestionsList = document.getElementById('suggestionsList');
+        const suggestionsSection = document.getElementById('suggestionsSection');
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Helpers
+        // ═══════════════════════════════════════════════════════════════
+        function getScoreColor(score, max) {
+            const pct = (score / max) * 100;
+            if (pct >= 71) return 'green';
+            if (pct >= 41) return 'amber';
+            return 'red';
+        }
+
+        function getScoreColorHex(pct) {
+            if (pct >= 71) return '#22c55e';
+            if (pct >= 41) return '#f59e0b';
+            return '#ef4444';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Animated Counter
+        // ═══════════════════════════════════════════════════════════════
+        function animateCounter(el, target, duration = 1200) {
+            const start = performance.now();
+            function tick(now) {
+                const elapsed = now - start;
+                const progress = Math.min(elapsed / duration, 1);
+                // Ease-out cubic
+                const eased = 1 - Math.pow(1 - progress, 3);
+                el.textContent = Math.round(target * eased);
+                if (progress < 1) requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Render Results
+        // ═══════════════════════════════════════════════════════════════
+        function renderResults(data) {
+            // Profile meta
+            const dateStr = data.analyzedAt ? formatDate(data.analyzedAt) : 'just now';
+            profileMeta.innerHTML = `<strong>@${data.githubUsername}</strong> · Profile analyzed on ${dateStr}`;
+
+            // Overall score circle
+            const overall = data.overallScore || 0;
+            const pct = overall / 100;
+            const circumference = 2 * Math.PI * 80; // r=80
+            const offset = circumference * (1 - pct);
+            const color = getScoreColorHex(overall);
+
+            // Animate after a small delay
+            setTimeout(() => {
+                scoreCircle.style.strokeDashoffset = offset;
+                scoreCircle.style.stroke = color;
+                animateCounter(scoreNumber, overall);
+                scoreNumber.style.color = color;
+            }, 400);
+
+            // Score breakdown cards
+            scoreGrid.innerHTML = '';
+            SCORE_CARDS.forEach((card) => {
+                const score = data[card.key] != null ? data[card.key] : 0;
+                const colorClass = getScoreColor(score, card.max);
+                const pctFill = (score / card.max) * 100;
+
+                const el = document.createElement('div');
+                el.className = `score-card color-${colorClass}`;
+                el.innerHTML = `
+                    <span class="card-icon">${card.icon}</span>
+                    <div class="card-title">${card.title}</div>
+                    <div class="card-score">${score} <span class="card-max">/ ${card.max}</span></div>
+                    <div class="card-progress">
+                        <div class="card-progress-fill" data-width="${pctFill}"></div>
+                    </div>
+                `;
+                scoreGrid.appendChild(el);
+            });
+
+            // Animate progress bars after cards animate in
+            setTimeout(() => {
+                document.querySelectorAll('.card-progress-fill').forEach((bar) => {
+                    bar.style.width = bar.dataset.width + '%';
+                });
+            }, 800);
+
+            // Suggestions
+            const suggestionsRaw = data.suggestions || '';
+            const suggestions = suggestionsRaw
+                .split('||')
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+
+            if (suggestions.length > 0) {
+                suggestionsList.innerHTML = '';
+                suggestions.forEach((text) => {
+                    const li = document.createElement('li');
+                    li.className = 'suggestion-item';
+                    li.innerHTML = `<span class="warn-icon">⚠️</span><span>${text}</span>`;
+                    suggestionsList.appendChild(li);
+                });
+                suggestionsSection.style.display = 'block';
+            } else {
+                suggestionsSection.innerHTML = `
+                    <h2 class="suggestions-title">💡 Improvement Suggestions</h2>
+                    <div class="no-suggestions">🎉 Great job! No major weaknesses detected in your profile.</div>
+                `;
+            }
+
+            // Show results
+            loadingScreen.style.display = 'none';
+            resultsContent.classList.add('visible');
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Show Error
+        // ═══════════════════════════════════════════════════════════════
+        function showError(msg) {
+            loadingScreen.style.display = 'none';
+            errorDetail.textContent = msg;
+            errorBanner.classList.add('visible');
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Share / Copy URL
+        // ═══════════════════════════════════════════════════════════════
+        function shareResults() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.add('visible');
+                setTimeout(() => toast.classList.remove('visible'), 2500);
+            }).catch(() => {
+                // Fallback
+                prompt('Copy this link:', url);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Init — fetch data on page load
+        // ═══════════════════════════════════════════════════════════════
+        (async function init() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+
+            if (!id) {
+                showError('No analysis ID provided in the URL. Please start from the home page.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/analyze/${id}`);
+
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        showError('Analysis not found. The ID may be invalid or expired.');
+                    } else {
+                        showError(`Server returned status ${res.status}.`);
+                    }
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (data.status === 'PROCESSING') {
+                    showError('Analysis is still processing. Please wait a moment and refresh.');
+                    return;
+                }
+
+                if (data.status === 'FAILED') {
+                    showError(data.suggestions || 'Analysis failed. Please try again.');
+                    return;
+                }
+
+                renderResults(data);
+
+            } catch (err) {
+                showError('Could not connect to the backend. Is the server running?');
+            }
+        })();
+    </script>
+</body>
+</html>
