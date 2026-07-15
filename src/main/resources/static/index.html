@@ -1,615 +1,264 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevScope — Analyze Your Developer Profile</title>
-    <meta name="description" content="DevScope analyzes your GitHub profile and resume to generate a comprehensive developer score with actionable suggestions.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        /* ─── Reset & Base ────────────────────────────────────────── */
-        *, *::before, *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-card: #ffffff;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --accent-glow: rgba(99, 102, 241, 0.25);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --text-dark: #0f172a;
-            --text-muted: #64748b;
-            --border: #334155;
-            --error: #ef4444;
-            --error-bg: rgba(239, 68, 68, 0.1);
-            --success: #22c55e;
-            --radius: 16px;
-            --radius-sm: 10px;
-            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            overflow-x: hidden;
-        }
-
-        /* ─── Animated Background ─────────────────────────────────── */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
-            animation: bgDrift 20s ease-in-out infinite alternate;
-            z-index: -1;
-        }
-
-        @keyframes bgDrift {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            100% { transform: translate(-3%, -3%) rotate(2deg); }
-        }
-
-        /* ─── Container ───────────────────────────────────────────── */
-        .container {
-            width: 100%;
-            max-width: 560px;
-            animation: fadeSlideUp 0.7s ease-out;
-        }
-
-        @keyframes fadeSlideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ─── Header ──────────────────────────────────────────────── */
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .logo-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--accent), #8b5cf6);
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 8px 24px var(--accent-glow);
-        }
-
-        .logo-text {
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #f8fafc, #cbd5e1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .subtitle {
-            color: var(--text-secondary);
-            font-size: 15px;
-            font-weight: 400;
-            letter-spacing: 0.2px;
-        }
-
-        /* ─── Card ────────────────────────────────────────────────── */
-        .card {
-            background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 36px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
-                        0 0 0 1px rgba(255, 255, 255, 0.05);
-        }
-
-        /* ─── Form ────────────────────────────────────────────────── */
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 8px;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-        }
-
-        .form-hint {
-            font-size: 12px;
-            color: var(--text-muted);
-            font-weight: 400;
-            text-transform: none;
-            margin-left: 4px;
-        }
-
-        .text-input {
-            width: 100%;
-            padding: 14px 16px;
-            font-family: 'Inter', sans-serif;
-            font-size: 15px;
-            color: var(--text-dark);
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: var(--radius-sm);
-            outline: none;
-            transition: var(--transition);
-        }
-
-        .text-input::placeholder {
-            color: #94a3b8;
-        }
-
-        .text-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px var(--accent-glow);
-            background: #fff;
-        }
-
-        /* ─── Drop Zone ───────────────────────────────────────────── */
-        .drop-zone {
-            position: relative;
-            border: 2px dashed #cbd5e1;
-            border-radius: var(--radius-sm);
-            padding: 32px 16px;
-            text-align: center;
-            cursor: pointer;
-            transition: var(--transition);
-            background: #f8fafc;
-        }
-
-        .drop-zone:hover,
-        .drop-zone.drag-over {
-            border-color: var(--accent);
-            background: rgba(99, 102, 241, 0.04);
-            box-shadow: 0 0 0 4px var(--accent-glow);
-        }
-
-        .drop-zone.has-file {
-            border-color: var(--success);
-            border-style: solid;
-            background: rgba(34, 197, 94, 0.04);
-        }
-
-        .drop-zone-icon {
-            font-size: 36px;
-            margin-bottom: 8px;
-            display: block;
-        }
-
-        .drop-zone-text {
-            font-size: 14px;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
-
-        .drop-zone-text strong {
-            color: var(--accent);
-        }
-
-        .drop-zone input[type="file"] {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        .file-name {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 12px;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--success);
-        }
-
-        .file-name.hidden {
-            display: none;
-        }
-
-        /* ─── Button ──────────────────────────────────────────────── */
-        .btn-primary {
-            width: 100%;
-            padding: 16px;
-            font-family: 'Inter', sans-serif;
-            font-size: 15px;
-            font-weight: 600;
-            color: #fff;
-            background: linear-gradient(135deg, var(--accent), #8b5cf6);
-            border: none;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: var(--transition);
-            letter-spacing: 0.3px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
-            opacity: 0;
-            transition: var(--transition);
-        }
-
-        .btn-primary:hover:not(:disabled)::before {
-            opacity: 1;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px var(--accent-glow);
-        }
-
-        .btn-primary:active:not(:disabled) {
-            transform: translateY(0);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            background: #94a3b8;
-        }
-
-        /* ─── Loading State ───────────────────────────────────────── */
-        .loading-overlay {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            padding: 48px 16px;
-        }
-
-        .loading-overlay.visible {
-            display: flex;
-        }
-
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid #e2e8f0;
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            font-size: 15px;
-            font-weight: 500;
-            color: var(--text-muted);
-        }
-
-        .loading-sub {
-            font-size: 12px;
-            color: #94a3b8;
-            margin-top: -12px;
-        }
-
-        /* ─── Error ───────────────────────────────────────────────── */
-        .error-msg {
-            display: none;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 16px;
-            background: var(--error-bg);
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            border-radius: var(--radius-sm);
-            font-size: 13px;
-            color: var(--error);
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-
-        .error-msg.visible {
-            display: flex;
-        }
-
-        .error-msg span.icon {
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-
-        /* ─── Footer ──────────────────────────────────────────────── */
-        .footer {
-            text-align: center;
-            margin-top: 28px;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .footer a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        /* ─── Responsive ──────────────────────────────────────────── */
-        @media (max-width: 480px) {
-            body {
-                padding: 16px;
-                align-items: flex-start;
-                padding-top: 40px;
-            }
-            .card {
-                padding: 24px;
-            }
-            .logo-text {
-                font-size: 26px;
-            }
-            .logo-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 20px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevScope - Analyze Your Developer Profile</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="description" content="DevScope analyzes your GitHub profile and resume to generate a comprehensive developer score with actionable suggestions for career growth.">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">
-                <div class="logo-icon">⚡</div>
-                <span class="logo-text">DevScope</span>
-            </div>
-            <p class="subtitle">Analyze your developer profile in seconds</p>
+
+  <div class="split-layout">
+    <!-- ════════════════════════════════════════════════════════════════
+         LEFT COLUMN — Hero / Marketing
+         ════════════════════════════════════════════════════════════════ -->
+    <div class="split-left">
+      <div class="left-content">
+
+        <!-- Brand Logo (SVG) -->
+        <div class="brand-logo">
+          <svg data-logo="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 282.5899963378906 39.775" width="282.5899963378906" height="39.775">
+            <g id="logogram" transform="translate(0, 2.8874999999999993) rotate(0 24 17)"><path d="M15.4992 0H36.5808L21.0816 22.9729H0L15.4992 0Z" fill="#BE1919"/><path d="M16.4224 25.102L10.4192 34H32.5008L48 11.0271H31.7024L22.2064 25.102H16.4224Z" fill="#D57676"/></g>
+            <g id="logotype" transform="translate(54, 0.5)"><path fill="#111111" d="M8.45 6.75L21.54 6.75Q26.20 6.75 29.71 8.38Q33.23 10.00 35.17 12.96Q37.12 15.92 37.12 19.88L37.12 19.88Q37.12 23.83 35.17 26.79Q33.23 29.75 29.71 31.37Q26.20 33 21.54 33L21.54 33L8.45 33L8.45 6.75ZM15.66 9.79L15.66 29.95L12.20 26.56L22.10 26.56Q24.45 26.56 26.18 25.74Q27.91 24.91 28.86 23.41Q29.80 21.91 29.80 19.88L29.80 19.88Q29.80 17.81 28.86 16.32Q27.91 14.83 26.18 14.01Q24.45 13.19 22.10 13.19L22.10 13.19L12.20 13.19L15.66 9.79ZM52.10 33.56L52.10 33.56Q48.46 33.56 45.60 32.23Q42.75 30.90 41.11 28.50Q39.46 26.11 39.46 22.92L39.46 22.92Q39.46 19.80 41.04 17.44Q42.61 15.08 45.36 13.75Q48.11 12.42 51.57 12.42L51.57 12.42Q55.18 12.42 57.71 13.98Q60.25 15.53 61.63 18.37Q63.02 21.20 63.02 25.05L63.02 25.05L45.24 25.05L45.24 20.75L58.99 20.75L56.65 22.25Q56.51 20.71 55.88 19.65Q55.25 18.58 54.21 18.02Q53.18 17.46 51.75 17.46L51.75 17.46Q50.17 17.46 49.05 18.09Q47.93 18.72 47.30 19.82Q46.67 20.92 46.67 22.39L46.67 22.39Q46.67 24.28 47.53 25.60Q48.39 26.91 50.05 27.61Q51.71 28.31 54.13 28.31L54.13 28.31Q56.33 28.31 58.52 27.73Q60.71 27.16 62.49 26.11L62.49 26.11L62.49 30.66Q60.43 32.05 57.78 32.81Q55.14 33.56 52.10 33.56ZM72.05 13.01L78.87 29.61L76.42 29.57L83.35 13.01L90.98 13.01L81.64 33L73.48 33L64.14 13.01L72.05 13.01ZM92.28 24.39L92.28 24.39L99.66 24.39Q99.84 25.48 100.68 26.28Q101.52 27.09 102.93 27.52Q104.35 27.96 106.28 27.96L106.28 27.96Q108.94 27.96 110.48 27.28Q112.02 26.59 112.02 25.27L112.02 25.27Q112.02 24.25 111.14 23.69Q110.27 23.13 107.78 22.88L107.78 22.88L102.88 22.43Q97.46 21.94 95.01 19.96Q92.56 17.98 92.56 14.63L92.56 14.63Q92.56 11.89 94.15 10.00Q95.74 8.11 98.63 7.15Q101.52 6.19 105.37 6.19L105.37 6.19Q109.15 6.19 112.09 7.26Q115.03 8.32 116.76 10.28Q118.49 12.24 118.63 14.83L118.63 14.83L111.28 14.83Q111.14 13.89 110.39 13.21Q109.64 12.52 108.34 12.16Q107.05 11.79 105.23 11.79L105.23 11.79Q102.78 11.79 101.34 12.44Q99.91 13.08 99.91 14.34L99.91 14.34Q99.91 15.25 100.76 15.81Q101.62 16.38 103.86 16.58L103.86 16.58L109.08 17.11Q112.82 17.46 115.06 18.32Q117.30 19.17 118.32 20.68Q119.33 22.18 119.33 24.42L119.33 24.42Q119.33 27.19 117.69 29.24Q116.04 31.29 113.07 32.42Q110.09 33.56 106.14 33.56L106.14 33.56Q102.08 33.56 98.98 32.42Q95.88 31.29 94.13 29.20Q92.38 27.12 92.28 24.39ZM139.21 24.56L146.31 24.56Q146.04 27.26 144.36 29.29Q142.68 31.32 140.00 32.44Q137.32 33.56 134.00 33.56L134.00 33.56Q130.32 33.56 127.52 32.23Q124.72 30.90 123.15 28.52Q121.57 26.14 121.57 23.02L121.57 23.02Q121.57 19.88 123.15 17.49Q124.72 15.11 127.52 13.77Q130.32 12.42 134.00 12.42L134.00 12.42Q137.32 12.42 140.00 13.56Q142.68 14.69 144.36 16.71Q146.04 18.72 146.31 21.45L146.31 21.45L139.21 21.45Q138.83 19.66 137.43 18.70Q136.03 17.74 134.00 17.74L134.00 17.74Q132.42 17.74 131.25 18.35Q130.08 18.96 129.43 20.14Q128.78 21.31 128.78 23.02L128.78 23.02Q128.78 24.70 129.43 25.88Q130.08 27.05 131.25 27.66Q132.42 28.27 134.00 28.27L134.00 28.27Q136.03 28.27 137.44 27.26Q138.86 26.24 139.21 24.56L139.21 24.56ZM161.05 33.56L161.05 33.56Q157.20 33.56 154.33 32.25Q151.46 30.93 149.85 28.54Q148.24 26.14 148.24 23.02L148.24 23.02Q148.24 19.84 149.85 17.46Q151.46 15.08 154.33 13.75Q157.20 12.42 161.05 12.42L161.05 12.42Q164.87 12.42 167.75 13.75Q170.64 15.08 172.25 17.46Q173.86 19.84 173.86 23.02L173.86 23.02Q173.86 26.14 172.25 28.54Q170.64 30.93 167.75 32.25Q164.87 33.56 161.05 33.56ZM161.05 28.27L161.05 28.27Q162.80 28.27 164.04 27.64Q165.28 27.02 165.95 25.82Q166.62 24.63 166.62 23.02L166.62 23.02Q166.62 21.34 165.95 20.17Q165.28 19 164.04 18.37Q162.80 17.74 161.05 17.74L161.05 17.74Q159.30 17.74 158.04 18.37Q156.78 19 156.12 20.17Q155.45 21.34 155.45 22.99L155.45 22.99Q155.45 24.63 156.12 25.82Q156.78 27.02 158.04 27.64Q159.30 28.27 161.05 28.27ZM176.87 38.77L176.87 13.01L184.04 13.01L184.04 18.75L183.73 19.59L183.73 25.20L184.04 26.84L184.04 38.77L176.87 38.77ZM181.77 23.02L181.77 23.02Q182.22 19.77 183.68 17.41Q185.13 15.04 187.37 13.73Q189.61 12.42 192.44 12.42L192.44 12.42Q195.38 12.42 197.61 13.75Q199.83 15.08 201.07 17.46Q202.31 19.84 202.31 23.02L202.31 23.02Q202.31 26.14 201.07 28.54Q199.83 30.93 197.61 32.25Q195.38 33.56 192.44 33.56L192.44 33.56Q189.61 33.56 187.37 32.25Q185.13 30.93 183.69 28.55Q182.26 26.17 181.77 23.02ZM195.10 23.02L195.10 23.02Q195.10 21.52 194.49 20.36Q193.88 19.21 192.78 18.54Q191.68 17.88 190.28 17.88L190.28 17.88Q188.84 17.88 187.54 18.54Q186.25 19.21 185.27 20.36Q184.29 21.52 183.76 23.02L183.76 23.02Q184.29 24.49 185.27 25.65Q186.25 26.80 187.54 27.45Q188.84 28.10 190.28 28.10L190.28 28.10Q191.68 28.10 192.78 27.45Q193.88 26.80 194.49 25.65Q195.10 24.49 195.10 23.02ZM217.12 33.56L217.12 33.56Q213.48 33.56 210.63 32.23Q207.78 30.90 206.13 28.50Q204.49 26.11 204.49 22.92L204.49 22.92Q204.49 19.80 206.06 17.44Q207.63 15.08 210.38 13.75Q213.13 12.42 216.59 12.42L216.59 12.42Q220.20 12.42 222.74 13.98Q225.28 15.53 226.66 18.37Q228.04 21.20 228.04 25.05L228.04 25.05L210.26 25.05L210.26 20.75L224.02 20.75L221.67 22.25Q221.53 20.71 220.90 19.65Q220.27 18.58 219.24 18.02Q218.21 17.46 216.77 17.46L216.77 17.46Q215.19 17.46 214.07 18.09Q212.96 18.72 212.32 19.82Q211.69 20.92 211.69 22.39L211.69 22.39Q211.69 24.28 212.55 25.60Q213.41 26.91 215.07 27.61Q216.74 28.31 219.15 28.31L219.15 28.31Q221.36 28.31 223.54 27.73Q225.73 27.16 227.52 26.11L227.52 26.11L227.52 30.66Q225.45 32.05 222.81 32.81Q220.16 33.56 217.12 33.56Z"/></g>
+          </svg>
         </div>
 
-        <!-- Card -->
-        <div class="card">
-            <!-- Error -->
-            <div class="error-msg" id="errorMsg">
-                <span class="icon">⚠️</span>
-                <span id="errorText">Something went wrong. Please try again.</span>
-            </div>
+        <!-- Headline -->
+        <h1 class="hero-headline">
+          Analyze<span class="accent-dot">.</span><br>
+          Get hired<span class="accent-dot">.</span>
+        </h1>
 
-            <!-- Form -->
-            <form id="analyzeForm" autocomplete="off">
-                <!-- GitHub Username -->
-                <div class="form-group">
-                    <label class="form-label" for="githubUsername">
-                        GitHub Username
-                        <span class="form-hint">— e.g. @octocat</span>
-                    </label>
-                    <input
-                        type="text"
-                        id="githubUsername"
-                        class="text-input"
-                        placeholder="Enter your GitHub username"
-                        required
-                    >
-                </div>
+        <!-- Body -->
+        <p class="hero-body">
+          Upload your resume and connect your GitHub — DevScope scores your developer profile across 7 key dimensions and delivers actionable insights to help you stand out.
+        </p>
 
-                <!-- Resume Upload -->
-                <div class="form-group">
-                    <label class="form-label">
-                        Resume
-                        <span class="form-hint">— PDF only, max 5 MB</span>
-                    </label>
-                    <div class="drop-zone" id="dropZone">
-                        <span class="drop-zone-icon">📄</span>
-                        <div class="drop-zone-text">
-                            Drag & drop your resume here<br>
-                            or <strong>click to browse</strong>
-                        </div>
-                        <input type="file" id="resumeFile" accept=".pdf,application/pdf">
-                    </div>
-                    <div class="file-name hidden" id="fileName">
-                        <span>✅</span>
-                        <span id="fileNameText"></span>
-                    </div>
-                </div>
-
-                <!-- Submit -->
-                <button type="submit" class="btn-primary" id="submitBtn" disabled>
-                    🚀 Analyze Profile
-                </button>
-            </form>
-
-            <!-- Loading -->
-            <div class="loading-overlay" id="loadingOverlay">
-                <div class="spinner"></div>
-                <div class="loading-text">Analyzing your profile…</div>
-                <div class="loading-sub">Fetching GitHub data & scoring. This may take a moment.</div>
-            </div>
+        <!-- Feature Badges -->
+        <div class="feature-badges">
+          <span class="badge">
+            <span class="badge-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+            </span>
+            GitHub Analysis
+          </span>
+          <span class="badge">
+            <span class="badge-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </span>
+            Resume Matching
+          </span>
+          <span class="badge">
+            <span class="badge-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            Async Processing
+          </span>
+          <span class="badge">
+            <span class="badge-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+            </span>
+            7 Metrics
+          </span>
         </div>
-
-
+      </div>
     </div>
 
-    <script>
-        // ═══════════════════════════════════════════════════════════════
-        //  Configuration
-        // ═══════════════════════════════════════════════════════════════
-        const API_BASE_URL = '';
+    <!-- ════════════════════════════════════════════════════════════════
+         RIGHT COLUMN — Form Card
+         ════════════════════════════════════════════════════════════════ -->
+    <div class="split-right">
+      <div class="form-card" id="formCard">
 
-        // ═══════════════════════════════════════════════════════════════
-        //  DOM References
-        // ═══════════════════════════════════════════════════════════════
-        const form           = document.getElementById('analyzeForm');
-        const usernameInput  = document.getElementById('githubUsername');
-        const resumeInput    = document.getElementById('resumeFile');
-        const dropZone       = document.getElementById('dropZone');
-        const fileNameEl     = document.getElementById('fileName');
-        const fileNameText   = document.getElementById('fileNameText');
-        const submitBtn      = document.getElementById('submitBtn');
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const errorMsg       = document.getElementById('errorMsg');
-        const errorText      = document.getElementById('errorText');
+        <h2 class="form-card-title">Start your analysis</h2>
+        <p class="form-card-subtitle">It takes about 30 seconds. No sign-up required.</p>
 
-        // ═══════════════════════════════════════════════════════════════
-        //  Validation — enable/disable button
-        // ═══════════════════════════════════════════════════════════════
-        function validateForm() {
-            const hasUsername = usernameInput.value.trim().length > 0;
-            const hasFile     = resumeInput.files.length > 0;
-            submitBtn.disabled = !(hasUsername && hasFile);
+        <!-- Error -->
+        <div class="error-msg" id="errorMsg">
+          <span class="err-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </span>
+          <span id="errorText">Something went wrong. Please try again.</span>
+        </div>
+
+        <!-- Form -->
+        <form id="analyzeForm" autocomplete="off">
+          <!-- GitHub Username -->
+          <div class="form-group">
+            <label class="form-label" for="githubUsername">
+              GitHub Username
+              <span class="form-hint">e.g. octocat</span>
+            </label>
+            <input
+              type="text"
+              id="githubUsername"
+              class="text-input"
+              placeholder="Enter your GitHub username"
+              required
+            >
+          </div>
+
+          <!-- Resume Upload -->
+          <div class="form-group">
+            <label class="form-label">
+              Resume
+              <span class="form-hint">PDF, max 5 MB</span>
+            </label>
+            <div class="drop-zone" id="dropZone">
+              <div class="drop-zone-icon">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <div class="drop-zone-text">
+                Drag &amp; drop your resume here<br>
+                or <strong>click to browse</strong>
+              </div>
+              <input type="file" id="resumeFile" accept=".pdf,application/pdf">
+            </div>
+            <div class="file-info" id="fileInfo">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span id="fileInfoText"></span>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <button type="submit" class="btn-cta" id="submitBtn" disabled>
+            Analyze profile →
+          </button>
+        </form>
+
+        <!-- Loading State -->
+        <div class="form-loading" id="formLoading">
+          <div class="spinner"></div>
+          <div class="loading-title">Analyzing your profile…</div>
+          <div class="loading-sub">Fetching GitHub data &amp; scoring. This may take a moment.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       SCRIPT
+       ══════════════════════════════════════════════════════════════════ -->
+  <script>
+    // ─── DOM ──────────────────────────────────────────────────────────
+    const form         = document.getElementById('analyzeForm');
+    const usernameIn   = document.getElementById('githubUsername');
+    const resumeIn     = document.getElementById('resumeFile');
+    const dropZone     = document.getElementById('dropZone');
+    const fileInfo     = document.getElementById('fileInfo');
+    const fileInfoText = document.getElementById('fileInfoText');
+    const submitBtn    = document.getElementById('submitBtn');
+    const formLoading  = document.getElementById('formLoading');
+    const errorMsg     = document.getElementById('errorMsg');
+    const errorText    = document.getElementById('errorText');
+
+    // ─── Validation ──────────────────────────────────────────────────
+    function validate() {
+      const ok = usernameIn.value.trim().length > 0 && resumeIn.files.length > 0;
+      submitBtn.disabled = !ok;
+    }
+
+    usernameIn.addEventListener('input', validate);
+
+    resumeIn.addEventListener('change', () => {
+      hideError();
+      if (resumeIn.files.length > 0) {
+        const file = resumeIn.files[0];
+
+        if (file.size > 5 * 1024 * 1024) {
+          showError('File size exceeds the 5MB limit. Please choose a smaller file.');
+          resumeIn.value = '';
+          fileInfo.classList.remove('visible');
+          dropZone.classList.remove('has-file');
+          validate();
+          return;
         }
 
-        usernameInput.addEventListener('input', validateForm);
-        resumeInput.addEventListener('change', () => {
-            if (resumeInput.files.length > 0) {
-                const file = resumeInput.files[0];
-                fileNameText.textContent = file.name;
-                fileNameEl.classList.remove('hidden');
-                dropZone.classList.add('has-file');
-            } else {
-                fileNameEl.classList.add('hidden');
-                dropZone.classList.remove('has-file');
-            }
-            validateForm();
+        fileInfoText.textContent = file.name;
+        fileInfo.classList.add('visible');
+        dropZone.classList.add('has-file');
+      } else {
+        fileInfo.classList.remove('visible');
+        dropZone.classList.remove('has-file');
+      }
+      validate();
+    });
+
+    // ─── Drag & Drop ─────────────────────────────────────────────────
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('drag-over');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      if (e.dataTransfer.files.length > 0) {
+        resumeIn.files = e.dataTransfer.files;
+        resumeIn.dispatchEvent(new Event('change'));
+      }
+    });
+
+    // ─── Error Helpers ───────────────────────────────────────────────
+    function showError(msg) {
+      errorText.textContent = msg;
+      errorMsg.classList.add('visible');
+    }
+
+    function hideError() {
+      errorMsg.classList.remove('visible');
+    }
+
+    // ─── Form Submit ─────────────────────────────────────────────────
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+
+      const username = usernameIn.value.trim();
+      const file     = resumeIn.files[0];
+      if (!username || !file) return;
+
+      // Switch to loading
+      form.style.display = 'none';
+      formLoading.classList.add('visible');
+
+      try {
+        const formData = new FormData();
+        formData.append('githubUsername', username);
+        formData.append('resume', file);
+
+        // CRITICAL: Do NOT set Content-Type header — let browser handle multipart boundary
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          body: formData,
         });
 
-        // ─── Drag & Drop visual feedback ─────────────────────────────
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('drag-over');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('drag-over');
-        });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-over');
-            if (e.dataTransfer.files.length > 0) {
-                resumeInput.files = e.dataTransfer.files;
-                resumeInput.dispatchEvent(new Event('change'));
-            }
-        });
-
-        // ═══════════════════════════════════════════════════════════════
-        //  Error Helpers
-        // ═══════════════════════════════════════════════════════════════
-        function showError(msg) {
-            errorText.textContent = msg;
-            errorMsg.classList.add('visible');
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => null);
+          throw new Error(errBody?.error || `Server returned ${res.status}`);
         }
 
-        function hideError() {
-            errorMsg.classList.remove('visible');
-        }
+        const data = await res.json();
+        window.location.href = '/results.html?id=' + data.id;
 
-        // ═══════════════════════════════════════════════════════════════
-        //  Form Submission
-        // ═══════════════════════════════════════════════════════════════
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            hideError();
+      } catch (err) {
+        form.style.display = 'block';
+        formLoading.classList.remove('visible');
+        showError(err.message || 'Failed to start analysis. Is the backend running?');
+      }
+    });
+  </script>
 
-            const username = usernameInput.value.trim();
-            const file     = resumeInput.files[0];
+  <!-- Support Link -->
+  <a href="/support.html" class="support-link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><path d="M6 1v3"/><path d="M10 1v3"/><path d="M14 1v3"/></svg>
+    Support the Developer
+  </a>
 
-            if (!username || !file) return;
-
-            // Switch to loading state
-            form.style.display = 'none';
-            loadingOverlay.classList.add('visible');
-
-            try {
-                // ── POST /api/analyze ───────────────────────────────
-                const formData = new FormData();
-                formData.append('githubUsername', username);
-                formData.append('resume', file);
-
-                const postRes = await fetch(`${API_BASE_URL}/api/analyze`, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!postRes.ok) {
-                    const errBody = await postRes.json().catch(() => null);
-                    throw new Error(errBody?.error || `Server returned ${postRes.status}`);
-                }
-
-                const { id } = await postRes.json();
-
-                // ── Poll GET /api/analyze/{id} every 2s ─────────────
-                pollForResult(id);
-
-            } catch (err) {
-                form.style.display = 'block';
-                loadingOverlay.classList.remove('visible');
-                showError(err.message || 'Failed to start analysis. Is the backend running?');
-            }
-        });
-
-        // ═══════════════════════════════════════════════════════════════
-        //  Polling
-        // ═══════════════════════════════════════════════════════════════
-        function pollForResult(id) {
-            const interval = setInterval(async () => {
-                try {
-                    const res = await fetch(`${API_BASE_URL}/api/analyze/${id}`);
-
-                    if (!res.ok) {
-                        throw new Error(`Polling failed with status ${res.status}`);
-                    }
-
-                    const data = await res.json();
-
-                    if (data.status === 'COMPLETED') {
-                        clearInterval(interval);
-                        window.location.href = `results.html?id=${id}`;
-                    } else if (data.status === 'FAILED') {
-                        clearInterval(interval);
-                        form.style.display = 'block';
-                        loadingOverlay.classList.remove('visible');
-                        showError(data.suggestions || 'Analysis failed. Please check the username and try again.');
-                    }
-                    // else still PROCESSING — keep polling
-                } catch (err) {
-                    clearInterval(interval);
-                    form.style.display = 'block';
-                    loadingOverlay.classList.remove('visible');
-                    showError(err.message || 'Lost connection while waiting for results.');
-                }
-            }, 2000);
-        }
-    </script>
 </body>
 </html>

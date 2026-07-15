@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevScope - Support the Developer</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="description" content="Support the developer behind DevScope — buy A R Sagar a coffee via UPI.">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ─── Page Layout ────────────────────────────────────────────── */
+    .support-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+    }
+
+    /* ─── Back Button ────────────────────────────────────────────── */
+    .back-btn {
+      position: absolute;
+      top: 28px;
+      left: 28px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      transition: var(--transition);
+    }
+
+    .back-btn:hover {
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .back-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    /* ─── Support Card ───────────────────────────────────────────── */
+    .support-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--card-border);
+      border-radius: var(--card-radius);
+      box-shadow: var(--card-shadow);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      animation: cardIn 0.5s var(--ease) both;
+    }
+
+    /* ─── Card Header ────────────────────────────────────────────── */
+    .support-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fef3c7;
+      border-radius: 12px;
+    }
+
+    .support-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .support-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+      margin-bottom: 6px;
+    }
+
+    .support-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    .support-subtitle strong {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    /* ─── QR Zone ────────────────────────────────────────────────── */
+    .qr-zone {
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background: var(--bg-base);
+    }
+
+    .qr-zone img {
+      width: 100%;
+      max-width: 220px;
+      height: auto;
+      margin: 0 auto;
+      display: block;
+      border-radius: 6px;
+    }
+
+    .qr-instructions {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      margin-top: 12px;
+    }
+
+    /* ─── Divider ────────────────────────────────────────────────── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--card-border);
+    }
+
+    .divider span {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ─── UPI Copy Row ───────────────────────────────────────────── */
+    .upi-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .upi-input {
+      flex: 1;
+      padding: 10px 12px;
+      font-family: 'Inter', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      background: var(--bg-base);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      outline: none;
+      text-align: center;
+      letter-spacing: 0.3px;
+    }
+
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 10px 16px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-light);
+      border: 1px solid rgba(79,70,229,0.15);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover {
+      background: rgba(79,70,229,0.12);
+      border-color: var(--accent);
+    }
+
+    .copy-btn.copied {
+      color: #059669;
+      background: #ecfdf5;
+      border-color: rgba(5,150,105,0.2);
+    }
+
+    .copy-btn svg {
+      width: 13px;
+      height: 13px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ─── Footer Note ────────────────────────────────────────────── */
+    .support-footer {
+      margin-top: 24px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ─── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .support-card {
+        padding: 28px 24px;
+      }
+
+      .back-btn {
+        top: 16px;
+        left: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="support-page">
+
+    <!-- Back Button -->
+    <a href="/index.html" class="back-btn">
+      <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Back to DevScope
+    </a>
+
+    <!-- Support Card -->
+    <div class="support-card">
+
+      <!-- Icon -->
+      <div class="support-icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1" stroke="#d97706" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" stroke="#d97706" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 1v3" stroke="#d97706" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M10 1v3" stroke="#d97706" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M14 1v3" stroke="#d97706" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <!-- Header -->
+      <h1 class="support-title">Buy me a coffee</h1>
+      <p class="support-subtitle">Support the developer in keeping DevScope running.</p>
+
+      <!-- QR Code -->
+      <div class="qr-zone">
+        <img id="qrCode" src="/my-qr.jpeg" alt="UPI QR Code">
+      </div>
+      <p class="qr-instructions">Scan with any UPI app</p>
+
+      <!-- Divider -->
+      <div class="divider"><span>or pay manually</span></div>
+
+      <!-- UPI ID Copy Row -->
+      <div class="upi-row">
+        <input type="text" class="upi-input" id="upiId" value="8792107662@fam" readonly>
+        <button class="copy-btn" id="copyBtn" type="button">
+          <svg id="copyIcon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span id="copyText">Copy</span>
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <p class="support-footer">Every contribution helps cover hosting &amp; API costs. Thank you!</p>
+
+    </div>
+  </div>
+
+  <script>
+    const copyBtn  = document.getElementById('copyBtn');
+    const copyText = document.getElementById('copyText');
+    const copyIcon = document.getElementById('copyIcon');
+    const upiId    = document.getElementById('upiId');
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(upiId.value).then(() => {
+        copyBtn.classList.add('copied');
+        copyText.textContent = 'Copied!';
+        copyIcon.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+
+        setTimeout(() => {
+          copyBtn.classList.remove('copied');
+          copyText.textContent = 'Copy';
+          copyIcon.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>';
+        }, 2000);
+      }).catch(() => {
+        // Fallback for older browsers
+        upiId.select();
+        document.execCommand('copy');
+        copyText.textContent = 'Copied!';
+        setTimeout(() => { copyText.textContent = 'Copy'; }, 2000);
+      });
+    });
+  </script>
+
+</body>
+</html>

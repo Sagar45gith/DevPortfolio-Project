@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis Results — DevScope</title>
+  <meta name="description" content="View your DevScope developer portfolio analysis results. See your overall score, sub-metric breakdown, and actionable improvement suggestions.">
+  <link rel="stylesheet" href="/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       RESULTS PAGE — Layout & Components
+       ============================================================ */
+
+    /* --- Page layout --- */
+
+    .results-page {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+      gap: 0;
+      padding: 32px;
+    }
+
+    @media (max-width: 768px) {
+      .results-page {
+        grid-template-columns: 1fr;
+        padding: 20px;
+        gap: 24px;
+      }
+    }
+
+    /* --- Left sidebar --- */
+
+    .sidebar {
+      position: sticky;
+      top: 32px;
+      height: fit-content;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      box-shadow: var(--shadow-panel);
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: static;
+      }
+    }
+
+    /* Brand in sidebar */
+    .sidebar__brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .sidebar__brand-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: var(--accent);
+      border-radius: 5px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .sidebar__brand-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    .sidebar__divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 16px 0;
+    }
+
+    /* Avatar */
+    .sidebar__avatar-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .sidebar__avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      object-fit: cover;
+      background: var(--bg-surface-2);
+    }
+
+    .sidebar__avatar-placeholder {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--bg-surface-2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes shimmer {
+        0%   { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+
+      .sidebar__avatar-placeholder::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        animation: shimmer 1.5s ease-in-out infinite;
+      }
+    }
+
+    /* Username + date */
+    .sidebar__username {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: 2px;
+    }
+
+    .sidebar__date {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    /* Score ring */
+    .sidebar__score-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .score-ring {
+      width: 140px;
+      height: 140px;
+    }
+
+    .score-ring__bg {
+      fill: none;
+      stroke: var(--bg-surface-2);
+      stroke-width: 8;
+    }
+
+    .score-ring__arc {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+      /* circumference = 2 * PI * r = 2 * 3.14159 * 54 = 339.292 */
+      stroke-dasharray: 339.292;
+      stroke-dashoffset: 339.292;
+      transform: rotate(-90deg);
+      transform-origin: 70px 70px;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .score-ring__arc {
+        transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+    }
+
+    .score-ring__value {
+      font-size: 28px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      fill: var(--text-primary);
+      text-anchor: middle;
+      dominant-baseline: auto;
+    }
+
+    .score-ring__max {
+      font-size: 12px;
+      font-weight: 400;
+      fill: var(--text-muted);
+      text-anchor: middle;
+      dominant-baseline: hanging;
+    }
+
+    /* Score placeholder (loading) */
+    .score-ring-placeholder {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 8px solid var(--bg-surface-2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .score-ring-placeholder::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        animation: shimmer 1.5s ease-in-out infinite;
+      }
+    }
+
+    /* Tier label */
+    .sidebar__tier {
+      display: inline-block;
+      background: var(--accent-light);
+      color: var(--accent);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    /* Action buttons */
+    .sidebar__actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sidebar__actions .btn-primary,
+    .sidebar__actions .btn-ghost {
+      width: 100%;
+      padding: 10px 16px;
+      font-size: 13px;
+    }
+
+    /* --- Right panel --- */
+
+    .main-panel {
+      padding: 0 0 40px 32px;
+    }
+
+    @media (max-width: 768px) {
+      .main-panel {
+        padding: 0;
+      }
+    }
+
+    /* Section heading */
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+
+    .section-heading__label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    /* Metric grid */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .metric-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Metric card */
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .metric-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .metric-card__label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .metric-card__icon {
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .metric-card__score-row {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    .metric-card__value {
+      font-size: 24px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .metric-card__max {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .metric-card__bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .metric-card__bar-track {
+      flex: 1;
+      height: 4px;
+      background: var(--bg-surface-2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .metric-card__bar-fill {
+      height: 4px;
+      border-radius: 2px;
+      width: 0%;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .metric-card__bar-fill {
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+    }
+
+    .metric-card__pct {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      min-width: 32px;
+      text-align: right;
+    }
+
+    /* --- Improvement protocol --- */
+
+    .protocol-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .protocol-card__header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .protocol-card__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--score-mid);
+      flex-shrink: 0;
+    }
+
+    .protocol-card__title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .suggestion-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .suggestion-row:last-child {
+      border-bottom: none;
+    }
+
+    .suggestion-row__index {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      min-width: 20px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.5;
+      flex-shrink: 0;
+    }
+
+    .suggestion-row__icon {
+      flex-shrink: 0;
+      margin-top: 2px;
+      color: var(--score-mid);
+    }
+
+    .suggestion-row__text {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* --- Loading state --- */
+
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      text-align: center;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .loading-spinner {
+        animation: spin 1.2s linear infinite;
+      }
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 20px;
+    }
+
+    .loading-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .loading-status {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      min-height: 21px;
+    }
+
+    .loading-progress-track {
+      width: 240px;
+      height: 4px;
+      background: var(--bg-surface-2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .loading-progress-fill {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--accent);
+      width: 0%;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .loading-progress-fill {
+        transition: width 0.5s linear;
+      }
+    }
+
+    /* --- Error state --- */
+
+    .error-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+    }
+
+    .error-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--score-low);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      max-width: 440px;
+      text-align: center;
+    }
+
+    .error-card__title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .error-card__body {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .error-card .btn-primary {
+      display: inline-flex;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="results-page" role="main">
+
+    <!-- ============================================================
+         LEFT SIDEBAR
+         ============================================================ -->
+    <aside class="sidebar" aria-label="Profile summary">
+
+      <!-- Brand -->
+      <a href="/index.html" class="sidebar__brand" aria-label="DevScope home">
+        <div class="sidebar__brand-icon" aria-hidden="true">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polyline>
+          </svg>
+        </div>
+        <span class="sidebar__brand-label">DevScope</span>
+      </a>
+
+      <hr class="sidebar__divider">
+
+      <!-- Avatar -->
+      <div class="sidebar__avatar-wrap" id="avatarWrap">
+        <div class="sidebar__avatar-placeholder" id="avatarPlaceholder"></div>
+      </div>
+
+      <!-- Username / date -->
+      <div class="sidebar__username" id="sidebarUsername">---</div>
+      <div class="sidebar__date" id="sidebarDate"></div>
+
+      <!-- Score ring -->
+      <div class="sidebar__score-wrap" id="scoreWrap">
+        <!-- Placeholder shown while loading -->
+        <div class="score-ring-placeholder" id="scorePlaceholder"></div>
+      </div>
+
+      <!-- Tier label (hidden during loading) -->
+      <div style="text-align:center; margin-bottom: 4px;">
+        <span class="sidebar__tier" id="tierLabel" style="display:none;"></span>
+      </div>
+
+      <hr class="sidebar__divider" id="actionsDivider" style="display:none;">
+
+      <!-- Action buttons (hidden during loading) -->
+      <div class="sidebar__actions" id="sidebarActions" style="display:none;">
+        <a href="/index.html" class="btn-primary" style="text-align:center;">Analyze another</a>
+        <button type="button" class="btn-ghost" id="copyLinkBtn" aria-label="Copy link to results">Copy link</button>
+      </div>
+
+    </aside>
+
+    <!-- ============================================================
+         RIGHT PANEL
+         ============================================================ -->
+    <div class="main-panel" id="mainPanel">
+
+      <!-- Loading state (shown by default) -->
+      <div class="loading-state" id="loadingState">
+        <svg class="loading-spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" stroke="var(--border)" stroke-width="3"></circle>
+          <path d="M12 2a10 10 0 019.95 9" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"></path>
+        </svg>
+        <div class="loading-title">Analyzing profile</div>
+        <div class="loading-status" id="loadingStatus" aria-live="polite">Parsing resume...</div>
+        <div class="loading-progress-track">
+          <div class="loading-progress-fill" id="loadingProgress"></div>
+        </div>
+      </div>
+
+      <!-- Results content (hidden by default) -->
+      <div id="resultsContent" style="display:none;">
+
+        <!-- Section 1: Sub-metric breakdown -->
+        <section aria-label="Sub-metric breakdown">
+          <div class="section-heading">
+            <!-- Bar chart icon -->
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span class="section-heading__label">Sub-metric breakdown</span>
+          </div>
+          <div class="metric-grid" id="metricGrid"></div>
+        </section>
+
+        <!-- Section 2: Improvement protocol -->
+        <section aria-label="Improvement protocol">
+          <div class="section-heading">
+            <!-- Shield / alert icon -->
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span class="section-heading__label">Improvement protocol</span>
+          </div>
+          <div class="protocol-card" id="protocolCard">
+            <div class="protocol-card__header">
+              <span class="protocol-card__dot" aria-hidden="true"></span>
+              <span class="protocol-card__title">Actionable warnings</span>
+            </div>
+            <div id="suggestionsBody"></div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Error state (hidden by default) -->
+      <div class="error-state" id="errorState" style="display:none;">
+        <div class="error-card">
+          <div class="error-card__title" id="errorTitle">Analysis unavailable</div>
+          <div class="error-card__body" id="errorBody">
+            This profile could not be analyzed. The GitHub username may be invalid, or the analysis timed out.
+          </div>
+          <a href="/index.html" class="btn-primary">Start over</a>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <script>
+    /* ============================================================
+       RESULTS PAGE — JavaScript
+       ============================================================ */
+
+    const API_BASE_URL = '';
+
+    /* --- Score helpers --- */
+
+    function scoreColor(value, max) {
+      var pct = value / max;
+      if (pct >= 0.8) return 'var(--score-high)';
+      if (pct >= 0.5) return 'var(--score-mid)';
+      return 'var(--score-low)';
+    }
+
+    function scoreBg(value, max) {
+      var pct = value / max;
+      if (pct >= 0.8) return 'var(--score-high-bg)';
+      if (pct >= 0.5) return 'var(--score-mid-bg)';
+      return 'var(--score-low-bg)';
+    }
+
+    function getTier(score) {
+      if (score >= 95) return 'Legendary';
+      if (score >= 85) return 'Elite';
+      if (score >= 70) return 'Advanced';
+      if (score >= 55) return 'Proficient';
+      if (score >= 40) return 'Developing';
+      return 'Rookie';
+    }
+
+    /* Score countup animation */
+    function animateCount(element, target, duration) {
+      var start = performance.now();
+      function frame(now) {
+        var progress = Math.min((now - start) / duration, 1);
+        /* ease-out cubic */
+        var eased = 1 - Math.pow(1 - progress, 3);
+        element.textContent = Math.round(eased * target);
+        if (progress < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    /* --- Metric definitions --- */
+
+    var METRICS = [
+      {
+        key: 'repoCountScore',
+        label: 'Repo Count',
+        max: 15,
+        /* Branching graph icon */
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M6 9v6"></path><path d="M18 15V9a3 3 0 00-3-3H9"></path></svg>'
+      },
+      {
+        key: 'commitFrequencyScore',
+        label: 'Commit Frequency',
+        max: 20,
+        /* Pulse / wave icon */
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>'
+      },
+      {
+        key: 'languageDiversityScore',
+        label: 'Language Diversity',
+        max: 15,
+        /* Code brackets icon */
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>'
+      },
+      {
+        key: 'projectDocumentationScore',
+        label: 'Documentation',
+        max: 10,
+        /* Document lines icon */
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>'
+      },
+      {
+        key: 'resumeMatchScore',
+        label: 'Resume Match',
+        max: 20,
+        /* Magnifying glass icon */
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>'
+      },
+      {
+        key: 'profileCompletenessScore',
+        label: 'Profile Completeness',
+        max: 10,
+        /* Person silhouette icon */
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'
+      },
+      {
+        key: 'starsRecognitionScore',
+        label: 'Stars & Recognition',
+        max: 10,
+        /* Star outline icon */
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>'
+      }
+    ];
+
+    /* --- DOM references --- */
+
+    var mainPanel = document.getElementById('mainPanel');
+    var loadingState = document.getElementById('loadingState');
+    var loadingStatus = document.getElementById('loadingStatus');
+    var loadingProgress = document.getElementById('loadingProgress');
+    var resultsContent = document.getElementById('resultsContent');
+    var errorState = document.getElementById('errorState');
+    var avatarWrap = document.getElementById('avatarWrap');
+    var avatarPlaceholder = document.getElementById('avatarPlaceholder');
+    var sidebarUsername = document.getElementById('sidebarUsername');
+    var sidebarDate = document.getElementById('sidebarDate');
+    var scoreWrap = document.getElementById('scoreWrap');
+    var scorePlaceholder = document.getElementById('scorePlaceholder');
+    var tierLabel = document.getElementById('tierLabel');
+    var actionsDivider = document.getElementById('actionsDivider');
+    var sidebarActions = document.getElementById('sidebarActions');
+    var metricGrid = document.getElementById('metricGrid');
+    var suggestionsBody = document.getElementById('suggestionsBody');
+    var copyLinkBtn = document.getElementById('copyLinkBtn');
+
+    /* --- Loading animation state --- */
+
+    var statusMessages = [
+      'Parsing resume\u2026',
+      'Fetching GitHub metrics\u2026',
+      'Scoring activity\u2026',
+      'Cross-referencing claims\u2026'
+    ];
+    var statusIndex = 0;
+    var statusInterval = null;
+    var progressInterval = null;
+    var progressValue = 0;
+
+    function startLoadingAnimation() {
+      /* Rotate status messages every 3s */
+      statusInterval = setInterval(function() {
+        statusIndex = (statusIndex + 1) % statusMessages.length;
+        loadingStatus.textContent = statusMessages[statusIndex];
+      }, 3000);
+
+      /* Animate progress bar from 0 to 85% over 25s */
+      var startTime = performance.now();
+      var duration = 25000;
+      var target = 85;
+
+      function updateProgress() {
+        var elapsed = performance.now() - startTime;
+        var pct = Math.min((elapsed / duration) * target, target);
+        loadingProgress.style.width = pct + '%';
+        progressValue = pct;
+        if (pct < target) {
+          progressInterval = requestAnimationFrame(updateProgress);
+        }
+      }
+      progressInterval = requestAnimationFrame(updateProgress);
+    }
+
+    function stopLoadingAnimation() {
+      if (statusInterval) clearInterval(statusInterval);
+      if (progressInterval) cancelAnimationFrame(progressInterval);
+      /* Fill progress to 100% */
+      loadingProgress.style.width = '100%';
+    }
+
+    /* --- Polling --- */
+
+    var analysisId = null;
+    var pollInterval = null;
+
+    function init() {
+      var params = new URLSearchParams(window.location.search);
+      analysisId = params.get('id');
+
+      if (!analysisId) {
+        showError('Missing analysis ID', 'No analysis ID was provided. Please start a new analysis from the home page.');
+        return;
+      }
+
+      startLoadingAnimation();
+      poll();
+      pollInterval = setInterval(poll, 2000);
+    }
+
+    function poll() {
+      fetch(API_BASE_URL + '/api/analyze/' + analysisId)
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(function(data) {
+          if (data.status === 'COMPLETED') {
+            clearInterval(pollInterval);
+            stopLoadingAnimation();
+            /* Brief delay so the progress bar fills to 100% visually */
+            setTimeout(function() {
+              renderResults(data);
+            }, 400);
+          }
+          /* If PROCESSING, continue polling */
+        })
+        .catch(function(err) {
+          clearInterval(pollInterval);
+          stopLoadingAnimation();
+          showError('Analysis unavailable', 'This profile could not be analyzed. The GitHub username may be invalid, or the analysis timed out.');
+        });
+    }
+
+    /* --- Error state --- */
+
+    function showError(title, body) {
+      loadingState.style.display = 'none';
+      resultsContent.style.display = 'none';
+      errorState.style.display = 'flex';
+      document.getElementById('errorTitle').textContent = title;
+      document.getElementById('errorBody').textContent = body;
+    }
+
+    /* --- Render results --- */
+
+    function renderResults(data) {
+      /* Hide loading, show results */
+      loadingState.style.display = 'none';
+      resultsContent.style.display = 'block';
+
+      /* --- Sidebar --- */
+
+      /* Avatar */
+      avatarWrap.innerHTML = '';
+      var avatar = document.createElement('img');
+      avatar.className = 'sidebar__avatar';
+      avatar.src = 'https://github.com/' + data.githubUsername + '.png?size=80';
+      avatar.alt = data.githubUsername + ' avatar';
+      avatar.onerror = function() {
+        /* Fallback to placeholder if image fails */
+        this.style.display = 'none';
+      };
+      avatarWrap.appendChild(avatar);
+
+      /* Username */
+      sidebarUsername.textContent = '@' + data.githubUsername;
+
+      /* Date */
+      var now = new Date();
+      var options = { year: 'numeric', month: 'short', day: 'numeric' };
+      sidebarDate.textContent = 'Analyzed ' + now.toLocaleDateString('en-US', options);
+
+      /* Score ring SVG */
+      scoreWrap.innerHTML = '';
+
+      /* circumference = 2 * Math.PI * 54 = 339.292 */
+      var circumference = 2 * Math.PI * 54;
+      /* dashoffset = circumference * (1 - overallScore/100) */
+      var finalOffset = circumference * (1 - data.overallScore / 100);
+      var arcColor = scoreColor(data.overallScore, 100);
+
+      var svgNS = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('class', 'score-ring');
+      svg.setAttribute('viewBox', '0 0 140 140');
+      svg.setAttribute('aria-label', 'Overall score: ' + data.overallScore + ' out of 100');
+
+      /* Background ring */
+      var bgCircle = document.createElementNS(svgNS, 'circle');
+      bgCircle.setAttribute('class', 'score-ring__bg');
+      bgCircle.setAttribute('cx', '70');
+      bgCircle.setAttribute('cy', '70');
+      bgCircle.setAttribute('r', '54');
+      svg.appendChild(bgCircle);
+
+      /* Score arc */
+      var arcCircle = document.createElementNS(svgNS, 'circle');
+      arcCircle.setAttribute('class', 'score-ring__arc');
+      arcCircle.setAttribute('cx', '70');
+      arcCircle.setAttribute('cy', '70');
+      arcCircle.setAttribute('r', '54');
+      arcCircle.style.stroke = arcColor;
+      /* Start fully hidden */
+      arcCircle.style.strokeDashoffset = circumference;
+      svg.appendChild(arcCircle);
+
+      /* Score number text */
+      var scoreText = document.createElementNS(svgNS, 'text');
+      scoreText.setAttribute('class', 'score-ring__value');
+      scoreText.setAttribute('x', '70');
+      scoreText.setAttribute('y', '66');
+      scoreText.textContent = '0';
+      svg.appendChild(scoreText);
+
+      /* /100 text */
+      var maxText = document.createElementNS(svgNS, 'text');
+      maxText.setAttribute('class', 'score-ring__max');
+      maxText.setAttribute('x', '70');
+      maxText.setAttribute('y', '78');
+      maxText.textContent = '/ 100';
+      svg.appendChild(maxText);
+
+      scoreWrap.appendChild(svg);
+
+      /* Trigger arc animation after brief delay for paint */
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          arcCircle.style.strokeDashoffset = finalOffset;
+        });
+      });
+
+      /* Animate score countup */
+      animateCount(scoreText, data.overallScore, 1200);
+
+      /* Tier label */
+      tierLabel.textContent = getTier(data.overallScore);
+      tierLabel.style.display = 'inline-block';
+
+      /* Show action buttons */
+      actionsDivider.style.display = 'block';
+      sidebarActions.style.display = 'flex';
+
+      /* --- Metric cards --- */
+
+      metricGrid.innerHTML = '';
+
+      METRICS.forEach(function(metric, index) {
+        var value = data[metric.key] || 0;
+        var max = metric.max;
+        var pct = Math.round((value / max) * 100);
+        var color = scoreColor(value, max);
+
+        var card = document.createElement('div');
+        card.className = 'metric-card';
+
+        card.innerHTML =
+          '<div class="metric-card__header">' +
+            '<span class="metric-card__label">' + metric.label + '</span>' +
+            '<span class="metric-card__icon">' + metric.icon + '</span>' +
+          '</div>' +
+          '<div class="metric-card__score-row">' +
+            '<span class="metric-card__value" style="color:' + color + '">' + value + '</span>' +
+            '<span class="metric-card__max">/ ' + max + '</span>' +
+          '</div>' +
+          '<div class="metric-card__bar-row">' +
+            '<div class="metric-card__bar-track">' +
+              '<div class="metric-card__bar-fill" id="bar-' + index + '" style="background:' + color + '"></div>' +
+            '</div>' +
+            '<span class="metric-card__pct">' + pct + '%</span>' +
+          '</div>';
+
+        metricGrid.appendChild(card);
+
+        /* Stagger progress bar animation: 100ms delay per card */
+        setTimeout(function() {
+          var bar = document.getElementById('bar-' + index);
+          if (bar) {
+            bar.style.width = pct + '%';
+          }
+        }, index * 100);
+      });
+
+      /* --- Suggestions --- */
+
+      suggestionsBody.innerHTML = '';
+
+      if (data.suggestions) {
+        var suggestions = data.suggestions.split('||');
+        suggestions.forEach(function(text, i) {
+          var trimmed = text.trim();
+          if (!trimmed) return;
+
+          var row = document.createElement('div');
+          row.className = 'suggestion-row';
+
+          var indexStr = (i + 1).toString().padStart(2, '0');
+
+          row.innerHTML =
+            '<span class="suggestion-row__index">' + indexStr + '</span>' +
+            '<span class="suggestion-row__icon">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>' +
+                '<line x1="12" y1="9" x2="12" y2="13"></line>' +
+                '<line x1="12" y1="17" x2="12.01" y2="17"></line>' +
+              '</svg>' +
+            '</span>' +
+            '<span class="suggestion-row__text">' + escapeHtml(trimmed) + '</span>';
+
+          suggestionsBody.appendChild(row);
+        });
+      }
+    }
+
+    /* --- Utilities --- */
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
+    /* Copy link button */
+    copyLinkBtn.addEventListener('click', function() {
+      navigator.clipboard.writeText(window.location.href).then(function() {
+        copyLinkBtn.textContent = 'Copied!';
+        setTimeout(function() {
+          copyLinkBtn.textContent = 'Copy link';
+        }, 2000);
+      }).catch(function() {
+        copyLinkBtn.textContent = 'Copy failed';
+        setTimeout(function() {
+          copyLinkBtn.textContent = 'Copy link';
+        }, 2000);
+      });
+    });
+
+    /* --- Initialize on DOM ready --- */
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+
+</body>
+</html>

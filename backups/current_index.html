@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevScope — Developer Portfolio Analysis Engine</title>
+  <meta name="description" content="DevScope cross-references your GitHub activity against your resume to produce an objective engineering profile score. Analyze your developer portfolio now.">
+  <link rel="stylesheet" href="/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       INDEX PAGE — Layout & Components
+       ============================================================ */
+
+    /* --- Page layout --- */
+
+    .page {
+      display: grid;
+      grid-template-columns: 52fr 48fr;
+      min-height: 100vh;
+      padding: 40px;
+      gap: 48px;
+      align-items: center;
+    }
+
+    @media (max-width: 768px) {
+      .page {
+        grid-template-columns: 1fr;
+        padding: 24px 20px;
+        gap: 32px;
+        align-items: start;
+      }
+    }
+
+    /* --- Left column: Hero --- */
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 600px;
+    }
+
+    /* Brand wordmark */
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 48px;
+    }
+
+    .brand-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .brand-label {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    /* Headline */
+    .headline {
+      font-size: var(--text-hero);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 24px;
+    }
+
+    .headline-accent {
+      color: var(--accent);
+    }
+
+    /* Body copy */
+    .hero-body {
+      font-size: var(--text-base);
+      color: var(--text-secondary);
+      max-width: 420px;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    /* Feature badges */
+    .feature-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .feature-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .badge-dot--accent  { background: var(--accent); }
+    .badge-dot--high    { background: var(--score-high); }
+    .badge-dot--mid     { background: var(--score-mid); }
+
+    /* --- Right column: Form panel --- */
+
+    .form-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-panel);
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      justify-self: center;
+    }
+
+    @media (max-width: 768px) {
+      .form-panel {
+        max-width: 100%;
+      }
+    }
+
+    .form-panel__title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .form-panel__subtitle {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    /* Form fields */
+    .field {
+      margin-bottom: 20px;
+    }
+
+    .field__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .field__hint {
+      font-size: var(--text-xs);
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .field__input {
+      display: block;
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--text-primary);
+      outline: none;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .field__input {
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+    }
+
+    .field__input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .field__input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    /* Dropzone */
+    .dropzone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1.5px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-2);
+      padding: 28px;
+      cursor: pointer;
+      min-height: 120px;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .dropzone {
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+    }
+
+    .dropzone--active {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .dropzone--has-file {
+      flex-direction: row;
+      justify-content: space-between;
+      padding: 14px 18px;
+      gap: 12px;
+    }
+
+    .dropzone__text {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .dropzone__browse {
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .dropzone__file-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .dropzone__file-icon {
+      flex-shrink: 0;
+      color: var(--accent);
+    }
+
+    .dropzone__file-details {
+      min-width: 0;
+    }
+
+    .dropzone__filename {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dropzone__filesize {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .dropzone__remove {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .dropzone__remove {
+        transition: border-color 0.15s ease, color 0.15s ease;
+      }
+    }
+
+    .dropzone__remove:hover {
+      border-color: var(--score-low);
+      color: var(--score-low);
+    }
+
+    /* Submit button */
+    .submit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 600;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      margin-top: 24px;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .submit-btn {
+        transition: background 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+      }
+    }
+
+    .submit-btn:not(:disabled):hover {
+      background: var(--accent-hover);
+    }
+
+    .submit-btn:not(:disabled) {
+      box-shadow: 0 0 0 0 var(--accent-light);
+    }
+
+    .submit-btn:not(:disabled):focus-visible {
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .submit-btn--loading {
+      pointer-events: none;
+    }
+
+    /* Spinner */
+    @media (prefers-reduced-motion: no-preference) {
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .spinner {
+        animation: spin 0.8s linear infinite;
+      }
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* Error toast */
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--score-low);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-panel);
+      padding: 14px 18px;
+      max-width: 360px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .toast {
+        transition: opacity 0.25s ease, transform 0.25s ease;
+      }
+    }
+
+    .toast--visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast__title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--score-low);
+      margin-bottom: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="page" role="main">
+
+    <!-- ============================================================
+         LEFT COLUMN — Hero
+         ============================================================ -->
+    <section class="hero" aria-label="DevScope introduction">
+
+      <!-- Brand wordmark -->
+      <div class="brand" aria-label="DevScope">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polyline>
+          </svg>
+        </div>
+        <span class="brand-label">DevScope</span>
+      </div>
+
+      <!-- Headline -->
+      <h1 class="headline">
+        Analyze.<br>
+        <span class="headline-accent">Get hired.</span>
+      </h1>
+
+      <!-- Body copy -->
+      <p class="hero-body">
+        DevScope cross-references your GitHub activity against your resume claims to produce an objective engineering profile score. Commit velocity, repo depth, language breadth, documentation quality, and community recognition — all measured.
+      </p>
+
+      <!-- Feature badges -->
+      <div class="feature-badges" aria-label="Key features">
+        <div class="feature-badge">
+          <span class="badge-dot badge-dot--accent" aria-hidden="true"></span>
+          7 sub-metrics
+        </div>
+        <div class="feature-badge">
+          <span class="badge-dot badge-dot--high" aria-hidden="true"></span>
+          Resume cross-match
+        </div>
+        <div class="feature-badge">
+          <span class="badge-dot badge-dot--mid" aria-hidden="true"></span>
+          Improvement protocol
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================
+         RIGHT COLUMN — Scan Form
+         ============================================================ -->
+    <section class="form-panel" aria-label="Analysis form">
+
+      <h2 class="form-panel__title">Initialize scan</h2>
+      <p class="form-panel__subtitle">Provide your GitHub handle and a PDF resume to begin.</p>
+
+      <form id="scanForm" novalidate>
+
+        <!-- GitHub username field -->
+        <div class="field">
+          <div class="field__header">
+            <label for="githubUsername" class="label">
+              <!-- GitHub icon (14x14) -->
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795 .945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+              GitHub Username
+            </label>
+            <span class="field__hint">e.g. torvalds</span>
+          </div>
+          <input
+            type="text"
+            id="githubUsername"
+            name="githubUsername"
+            class="field__input"
+            placeholder="Enter GitHub username"
+            autocomplete="off"
+            spellcheck="false"
+          >
+        </div>
+
+        <!-- Resume upload field -->
+        <div class="field">
+          <div class="field__header">
+            <label for="fileInput" class="label">
+              <!-- Document icon (14x14) -->
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+              Resume
+            </label>
+            <span class="field__hint">PDF only &middot; max 5 MB</span>
+          </div>
+
+          <!-- Dropzone -->
+          <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload resume PDF. Drag and drop or click to browse.">
+            <!-- Upload icon -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" id="dropzoneIcon">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <div class="dropzone__text" id="dropzoneText">
+              Drag and drop your resume<br>
+              or <span class="dropzone__browse">click to browse</span>
+            </div>
+          </div>
+
+          <input type="file" accept=".pdf" id="fileInput" class="visually-hidden">
+        </div>
+
+        <!-- Submit button -->
+        <button type="submit" id="submitBtn" class="submit-btn" disabled>
+          <span id="submitLabel">Analyze profile</span>
+        </button>
+
+      </form>
+    </section>
+
+  </main>
+
+  <!-- Error toast -->
+  <div class="toast" id="toast" role="alert" aria-live="polite">
+    <div class="toast__title" id="toastTitle">Error</div>
+    <div id="toastMessage"></div>
+  </div>
+
+
+  <script>
+    /* ============================================================
+       INDEX PAGE — JavaScript
+       ============================================================ */
+
+    const API_BASE_URL = '';
+
+    /* --- DOM references --- */
+    const form = document.getElementById('scanForm');
+    const usernameInput = document.getElementById('githubUsername');
+    const fileInput = document.getElementById('fileInput');
+    const dropzone = document.getElementById('dropzone');
+    const dropzoneIcon = document.getElementById('dropzoneIcon');
+    const dropzoneText = document.getElementById('dropzoneText');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitLabel = document.getElementById('submitLabel');
+    const toast = document.getElementById('toast');
+    const toastTitle = document.getElementById('toastTitle');
+    const toastMessage = document.getElementById('toastMessage');
+
+    let selectedFile = null;
+    let toastTimeout = null;
+
+    /* --- Helpers --- */
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function showToast(title, message) {
+      toastTitle.textContent = title;
+      toastMessage.textContent = message;
+      toast.classList.add('toast--visible');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(function() {
+        toast.classList.remove('toast--visible');
+      }, 4000);
+    }
+
+    function updateSubmitState() {
+      var hasUsername = usernameInput.value.trim() !== '';
+      var hasFile = selectedFile !== null;
+      submitBtn.disabled = !(hasUsername && hasFile);
+    }
+
+    /* --- File validation --- */
+
+    function validateAndSetFile(file) {
+      if (!file) return;
+
+      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+        showToast('Invalid file type', 'Please upload a PDF file.');
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('File too large', 'Resume must be under 5 MB.');
+        return;
+      }
+
+      selectedFile = file;
+      renderFileState();
+      updateSubmitState();
+    }
+
+    function renderFileState() {
+      if (selectedFile) {
+        dropzone.classList.add('dropzone--has-file');
+        dropzone.innerHTML = '';
+
+        /* File info left side */
+        var fileInfo = document.createElement('div');
+        fileInfo.className = 'dropzone__file-info';
+
+        /* PDF icon */
+        var iconWrap = document.createElement('div');
+        iconWrap.className = 'dropzone__file-icon';
+        iconWrap.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
+        fileInfo.appendChild(iconWrap);
+
+        var details = document.createElement('div');
+        details.className = 'dropzone__file-details';
+
+        var fname = document.createElement('div');
+        fname.className = 'dropzone__filename';
+        fname.textContent = selectedFile.name;
+        details.appendChild(fname);
+
+        var fsize = document.createElement('div');
+        fsize.className = 'dropzone__filesize';
+        fsize.textContent = formatFileSize(selectedFile.size);
+        details.appendChild(fsize);
+
+        fileInfo.appendChild(details);
+        dropzone.appendChild(fileInfo);
+
+        /* Remove button */
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'dropzone__remove';
+        removeBtn.setAttribute('aria-label', 'Remove file');
+        removeBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+        removeBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          removeFile();
+        });
+        dropzone.appendChild(removeBtn);
+
+      } else {
+        dropzone.classList.remove('dropzone--has-file');
+        dropzone.innerHTML = '';
+
+        /* Re-create default dropzone content */
+        var icon = document.createElement('div');
+        icon.id = 'dropzoneIcon';
+        icon.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>';
+        dropzone.appendChild(icon);
+
+        var text = document.createElement('div');
+        text.className = 'dropzone__text';
+        text.id = 'dropzoneText';
+        text.innerHTML = 'Drag and drop your resume<br>or <span class="dropzone__browse">click to browse</span>';
+        dropzone.appendChild(text);
+      }
+    }
+
+    function removeFile() {
+      selectedFile = null;
+      fileInput.value = '';
+      renderFileState();
+      updateSubmitState();
+    }
+
+    /* --- Event listeners --- */
+
+    /* Username input */
+    usernameInput.addEventListener('input', updateSubmitState);
+
+    /* Dropzone click opens file picker */
+    dropzone.addEventListener('click', function() {
+      if (!selectedFile) {
+        fileInput.click();
+      }
+    });
+
+    /* Keyboard support for dropzone */
+    dropzone.addEventListener('keydown', function(e) {
+      if ((e.key === 'Enter' || e.key === ' ') && !selectedFile) {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    /* File input change */
+    fileInput.addEventListener('change', function() {
+      if (fileInput.files && fileInput.files[0]) {
+        validateAndSetFile(fileInput.files[0]);
+      }
+    });
+
+    /* Drag and drop */
+    dropzone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('dropzone--active');
+    });
+
+    dropzone.addEventListener('dragenter', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('dropzone--active');
+    });
+
+    dropzone.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('dropzone--active');
+    });
+
+    dropzone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('dropzone--active');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        validateAndSetFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    /* --- Form submission --- */
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      var username = usernameInput.value.trim();
+      if (!username || !selectedFile) return;
+
+      /* Set loading state */
+      submitBtn.disabled = true;
+      submitBtn.classList.add('submit-btn--loading');
+      submitLabel.innerHTML =
+        '<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+        '<circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"></circle>' +
+        '<path d="M12 2a10 10 0 019.95 9" stroke="#fff" stroke-width="3" stroke-linecap="round"></path>' +
+        '</svg> Analyzing\u2026';
+
+      var formData = new FormData();
+      formData.append('githubUsername', username);
+      formData.append('resume', selectedFile);
+
+      fetch(API_BASE_URL + '/api/analyze', {
+        method: 'POST',
+        body: formData
+      })
+      .then(function(response) {
+        if (!response.ok) {
+          return response.json().then(function(err) {
+            throw new Error(err.message || 'Analysis request failed.');
+          });
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.id) {
+          window.location.href = '/results.html?id=' + data.id;
+        } else {
+          throw new Error('Invalid response from server.');
+        }
+      })
+      .catch(function(err) {
+        showToast('Analysis failed', err.message || 'Something went wrong. Please try again.');
+        /* Reset button */
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('submit-btn--loading');
+        submitLabel.textContent = 'Analyze profile';
+        updateSubmitState();
+      });
+    });
+  </script>
+
+</body>
+</html>
