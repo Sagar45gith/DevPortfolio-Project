@@ -1,7 +1,7 @@
 package org.devanalyzer.devport.service;
 
+import org.devanalyzer.devport.dto.GitHubData;
 import org.devanalyzer.devport.dto.GithubRepoDto;
-import org.devanalyzer.devport.dto.GithubUserDto;
 import org.devanalyzer.devport.dto.ResumeData;
 import org.devanalyzer.devport.model.AnalysisResult;
 import org.devanalyzer.devport.repository.AnalysisResultRepository;
@@ -10,19 +10,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * Orchestrates the full profile-analysis workflow:
  * <ol>
- *   <li>Fetches GitHub data (profile, repos, commit activity)</li>
+ *   <li>Fetches GitHub data (profile, repos, commit activity) — may be cached</li>
  *   <li>Runs every scoring method via {@link ScoringEngine}</li>
  *   <li>Persists the completed {@link AnalysisResult}</li>
  * </ol>
  * The main entry point {@link #processProfileAnalysis} runs on an async
  * thread so the client receives an immediate "PROCESSING" response.
+ * <p>
+ * <strong>This method is NOT cached</strong> — scoring always runs fresh
+ * because the same GitHub username can be paired with a different resume.
  */
 @Service
 public class ProfileOrchestrationService {
@@ -53,33 +55,23 @@ public class ProfileOrchestrationService {
                                        ResumeData resumeData,
                                        UUID analysisId) {
         try {
-            // ── 1. Fetch GitHub data ────────────────────────────────────
-            GithubUserDto userProfile = gitHubService.fetchUserProfile(githubUsername);
-            List<GithubRepoDto> repos = gitHubService.fetchUserRepos(githubUsername);
+            // ── 1. Fetch GitHub data (cached by GitHubService) ──────────
+            GitHubData gitHubData = gitHubService.fetchAllGitHubData(githubUsername);
 
-            if (repos == null) repos = List.of();
+            List<GithubRepoDto> repos = gitHubData.repos();
+            int totalCommits = gitHubData.totalCommits();
 
-            // ── 2. Commit activity for top-5 repos (by stars) ───────────
-            List<GithubRepoDto> topRepos = repos.stream()
-                    .sorted(Comparator.comparingInt(
-                            (GithubRepoDto r) -> r.getStargazerCount() != null ? r.getStargazerCount() : 0)
-                            .reversed())
-                    .limit(5)
-                    .toList();
+            log.info("Using GitHub data for '{}': {} repos, {} commits",
+                    githubUsername, repos.size(), totalCommits);
 
-            int totalCommits = 0;
-            for (GithubRepoDto repo : topRepos) {
-                totalCommits += gitHubService.fetchCommitActivity(githubUsername, repo.getName());
-            }
-
-            // ── 3. Calculate every score ────────────────────────────────
+            // ── 2. Calculate every score (ALWAYS fresh) ─────────────────
             int repoCountScore       = scoringEngine.calculateRepoCountScore(repos.size());
             int commitFreqScore      = scoringEngine.calculateCommitFrequencyScore(totalCommits);
             int langDiversityScore   = scoringEngine.calculateLanguageDiversityScore(repos);
             int projDocScore         = scoringEngine.calculateProjectDocumentationScore(repos);
             int resumeMatchScore     = scoringEngine.calculateResumeMatchScore(
                     resumeData.detectedSkills(), repos);
-            int profileComplScore    = scoringEngine.calculateProfileCompletenessScore(userProfile);
+            int profileComplScore    = scoringEngine.calculateProfileCompletenessScore(gitHubData.userProfile());
             int starsScore           = scoringEngine.calculateStarsRecognitionScore(repos);
 
             int overallScore = repoCountScore
@@ -90,7 +82,7 @@ public class ProfileOrchestrationService {
                     + profileComplScore
                     + starsScore;
 
-            // ── 4. Generate suggestions ─────────────────────────────────
+            // ── 3. Generate suggestions ─────────────────────────────────
             List<String> suggestions = scoringEngine.generateSuggestions(
                     repos.size(),
                     commitFreqScore,
@@ -99,7 +91,7 @@ public class ProfileOrchestrationService {
                     resumeMatchScore
             );
 
-            // ── 5. Persist results ──────────────────────────────────────
+            // ── 4. Persist results ──────────────────────────────────────
             AnalysisResult result = analysisResultRepository.findById(analysisId)
                     .orElseThrow(() -> new IllegalStateException(
                             "AnalysisResult not found for id: " + analysisId));

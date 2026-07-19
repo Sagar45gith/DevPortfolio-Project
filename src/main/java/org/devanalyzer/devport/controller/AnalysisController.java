@@ -5,6 +5,8 @@ import org.devanalyzer.devport.model.AnalysisResult;
 import org.devanalyzer.devport.repository.AnalysisResultRepository;
 import org.devanalyzer.devport.service.ProfileOrchestrationService;
 import org.devanalyzer.devport.service.ResumeParserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +24,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/analyze")
 public class AnalysisController {
+
+    private static final Logger log = LoggerFactory.getLogger(AnalysisController.class);
 
     private final ResumeParserService resumeParserService;
     private final ProfileOrchestrationService orchestrationService;
@@ -41,9 +45,9 @@ public class AnalysisController {
 
     /**
      * Accepts a GitHub username and a PDF resume, creates a PROCESSING
-     * record, extracts the resume synchronously (to avoid stream-closed
-     * errors on the async thread), then hands off to the async
-     * orchestration pipeline.
+     * record, extracts the resume synchronously (using content-hashed
+     * caching to skip re-parsing identical PDFs), then hands off to the
+     * async orchestration pipeline.
      *
      * @return the analysis ID and status ("PROCESSING")
      */
@@ -75,8 +79,12 @@ public class AnalysisController {
                 .build();
         record = analysisResultRepository.save(record);
 
-        // ── 2. Synchronous: parse resume (avoids stream-closed on async) 
-        ResumeData resumeData = resumeParserService.parseResume(resume);
+        // ── 2. Synchronous: parse resume with content-hash caching ─────
+        byte[] fileBytes = resume.getBytes();
+        String fileHash = ResumeParserService.computeSha256Hex(fileBytes);
+        log.info("Resume SHA-256 hash: {} (for user '{}')", fileHash, githubUsername);
+
+        ResumeData resumeData = resumeParserService.parseResumeFromBytes(fileBytes, fileHash);
 
         // ── 3. Async: hand off to the orchestration service ─────────────
         orchestrationService.processProfileAnalysis(
@@ -109,9 +117,9 @@ public class AnalysisController {
     // ------------------------------------------------------------------ //
 
     /**
-     * Accepts a PDF resume upload, parses its content, and returns a
-     * {@link ResumeData} containing the extracted text, detected skills,
-     * and detected programming languages.
+     * Accepts a PDF resume upload, parses its content (with content-hash
+     * caching), and returns a {@link ResumeData} containing the extracted
+     * text, detected skills, and detected programming languages.
      */
     @PostMapping(value = "/resume", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadResume(
@@ -135,7 +143,12 @@ public class AnalysisController {
                     .body(Map.of("error", "Only PDF files are accepted"));
         }
 
-        ResumeData resumeData = resumeParserService.parseResume(file);
+        // Use content-hash caching for the standalone endpoint too
+        byte[] fileBytes = file.getBytes();
+        String fileHash = ResumeParserService.computeSha256Hex(fileBytes);
+        log.info("Standalone resume parse — SHA-256 hash: {}", fileHash);
+
+        ResumeData resumeData = resumeParserService.parseResumeFromBytes(fileBytes, fileHash);
 
         return ResponseEntity.ok(resumeData);
     }

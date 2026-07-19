@@ -1,9 +1,13 @@
 package org.devanalyzer.devport.service;
 
+import org.devanalyzer.devport.dto.GitHubData;
 import org.devanalyzer.devport.dto.GithubRepoDto;
 import org.devanalyzer.devport.dto.GithubUserDto;
 import org.devanalyzer.devport.exception.RateLimitException;
 import org.devanalyzer.devport.exception.UserNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -14,11 +18,13 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 public class GitHubService {
 
+    private static final Logger log = LoggerFactory.getLogger(GitHubService.class);
     private static final String BASE_URL = "https://api.github.com";
 
     private final RestTemplate restTemplate;
@@ -26,6 +32,51 @@ public class GitHubService {
     public GitHubService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
+
+    // ------------------------------------------------------------------ //
+    //  Cached aggregate fetch — single entry point for the orchestrator   //
+    // ------------------------------------------------------------------ //
+
+    /**
+     * Fetches <em>all</em> GitHub data for a user in one call:
+     * profile, repos, and commit activity for the top-5 repos.
+     * <p>
+     * Cached by username for 15 minutes (see {@code CacheConfig}).
+     * If this method body executes, it means the cache was missed.
+     *
+     * @param username the GitHub handle
+     * @return a {@link GitHubData} bundle
+     */
+    @Cacheable(value = "githubData", key = "#username")
+    public GitHubData fetchAllGitHubData(String username) {
+        log.info("GitHub data cache MISS for user '{}' — fetching from API", username);
+
+        GithubUserDto userProfile = fetchUserProfile(username);
+        List<GithubRepoDto> repos = fetchUserRepos(username);
+        if (repos == null) repos = List.of();
+
+        // Commit activity for top-5 repos (by stars)
+        List<GithubRepoDto> topRepos = repos.stream()
+                .sorted(Comparator.comparingInt(
+                        (GithubRepoDto r) -> r.getStargazerCount() != null ? r.getStargazerCount() : 0)
+                        .reversed())
+                .limit(5)
+                .toList();
+
+        int totalCommits = 0;
+        for (GithubRepoDto repo : topRepos) {
+            totalCommits += fetchCommitActivity(username, repo.getName());
+        }
+
+        log.info("GitHub data fetched for '{}': {} repos, {} commits (top 5)",
+                username, repos.size(), totalCommits);
+
+        return new GitHubData(userProfile, repos, totalCommits);
+    }
+
+    // ------------------------------------------------------------------ //
+    //  Individual fetch methods (called internally, NOT cached directly)  //
+    // ------------------------------------------------------------------ //
 
     /**
      * Fetches up to 100 public repositories for the given GitHub user.
@@ -143,3 +194,4 @@ public class GitHubService {
         return 1;
     }
 }
+

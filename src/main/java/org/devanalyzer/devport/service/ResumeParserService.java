@@ -4,17 +4,25 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.devanalyzer.devport.dto.ResumeData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 @Service
 public class ResumeParserService {
+
+    private static final Logger log = LoggerFactory.getLogger(ResumeParserService.class);
 
     /**
      * All keywords we scan for in a resume. Ordered so that multi-word /
@@ -52,6 +60,61 @@ public class ResumeParserService {
             "bash", "powershell","c/c++","r programming", "r studio", "r-studio","c programming"
     );
 
+    // ------------------------------------------------------------------ //
+    //  SHA-256 Utility                                                     //
+    // ------------------------------------------------------------------ //
+
+    /**
+     * Computes the SHA-256 hash of the given byte array and returns it
+     * as a lowercase hex string. Used as the cache key for resume data.
+     *
+     * @param data the raw file bytes
+     * @return 64-character lowercase hex SHA-256 digest
+     */
+    public static String computeSha256Hex(byte[] data) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(data);
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            // SHA-256 is guaranteed by the JVM spec — this should never happen
+            throw new IllegalStateException("SHA-256 algorithm not available", e);
+        }
+    }
+
+    // ------------------------------------------------------------------ //
+    //  Cached resume parsing (keyed by content hash)                       //
+    // ------------------------------------------------------------------ //
+
+    /**
+     * Parses a PDF resume from raw bytes and returns a {@link ResumeData}.
+     * <p>
+     * Cached by the SHA-256 hash of the file content for 30 minutes
+     * (see {@code CacheConfig}). If this method body executes, the cache
+     * was missed. On a cache hit, this method is skipped entirely.
+     *
+     * @param fileBytes the raw PDF bytes
+     * @param fileHash  SHA-256 hex hash of {@code fileBytes} (computed by caller)
+     * @return a fully populated {@link ResumeData}
+     * @throws IOException if the PDF cannot be parsed
+     */
+    @Cacheable(value = "resumeData", key = "#fileHash")
+    public ResumeData parseResumeFromBytes(byte[] fileBytes, String fileHash) throws IOException {
+        log.info("Resume data cache MISS for hash '{}' — parsing PDF", fileHash);
+
+        String text = extractTextFromBytes(fileBytes);
+        List<String> skills = extractSkills(text);
+        List<String> languages = extractProgrammingLanguages(skills);
+
+        log.info("Resume parsed: {} skills detected, {} languages detected", skills.size(), languages.size());
+
+        return new ResumeData(text, skills, languages);
+    }
+
+    // ------------------------------------------------------------------ //
+    //  Original method (kept for standalone /api/analyze/resume endpoint)  //
+    // ------------------------------------------------------------------ //
+
     /**
      * Parses a PDF resume and returns a {@link ResumeData} containing the
      * cleaned text, detected skills, and detected programming languages.
@@ -65,6 +128,22 @@ public class ResumeParserService {
         List<String> skills = extractSkills(text);
         List<String> languages = extractProgrammingLanguages(skills);
         return new ResumeData(text, skills, languages);
+    }
+
+    /**
+     * Extracts all text from a PDF byte array, normalizes whitespace,
+     * and returns the cleaned lowercase content.
+     *
+     * @param fileBytes the raw PDF bytes
+     * @return cleaned, lowercase plain-text content of the PDF
+     * @throws IOException if the PDF cannot be parsed
+     */
+    public String extractTextFromBytes(byte[] fileBytes) throws IOException {
+        try (PDDocument document = Loader.loadPDF(fileBytes)) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            String rawText = stripper.getText(document);
+            return cleanText(rawText);
+        }
     }
 
     /**
@@ -154,3 +233,4 @@ public class ResumeParserService {
         return Pattern.compile("\\b" + quoted + "\\b");
     }
 }
+
